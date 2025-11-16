@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Lab 3 - Ramallah Zones & Waste Containers</title>
+    <title>Lab 3 - Extra Map Features</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet"
@@ -16,6 +16,36 @@
         body {
             margin: 0;
         }
+
+        /* شكل صندوقات الكنترول */
+        .leaflet-control-custom,
+        .leaflet-control-clock,
+        .leaflet-control-northarrow,
+        .leaflet-control-coords {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        .leaflet-control-northarrow {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .leaflet-control-custom button {
+            background: #0078ff;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .leaflet-control-custom button:hover {
+            background: #005fcc;
+        }
     </style>
 </head>
 <body>
@@ -28,102 +58,14 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    // إنشاء الخريطة وتحديد مركزها
+    // 1) إنشاء الخريطة
     var map = L.map('map').setView([31.9, 35.2], 12);
 
-    // طبقة الأساس
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // متغيرات نخزن فيها الطبقات عشان نستخدمها بالـ Layer Control
-    var zonesLayer;
-    var wasteContainersLayer;
-    var layerControl; // عشان نقدر نحدّث الـ control بعد تحميل الطبقات
-
-    // دالة لتحديث الـ Layer Control بعد ما تنعمل الطبقات
-    function updateLayerControl() {
-        // لو كان فيه كنترول قديم، نمسحه
-        if (layerControl) {
-            map.removeControl(layerControl);
+    // 2) طبقتي الأساس: نهاري + ليلي (Night mode)
+    var osmDay = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
         }
-
-        const baseLayers = {};
-        const overlays = {};
-
-        if (zonesLayer) {
-            overlays["Zones"] = zonesLayer;
-        }
-        if (wasteContainersLayer) {
-            overlays["Waste Containers"] = wasteContainersLayer;
-        }
-
-        layerControl = L.control.layers(baseLayers, overlays).addTo(map);
-    }
-
-    // =====================
-    // STEP 1 + STEP 2 + STEP 3
-    // =====================
-
-    $.getJSON("RamallahZones.json", function (RZ) {
-        zonesLayer = L.geoJson(RZ, {
-            style: function (feature) {
-                return {
-                    fillColor: "yellow",
-                    fillOpacity: 0.3,
-                    color: "yellow",
-                    weight: 1.0,
-                    opacity: 0.7
-                };
-            },
-            onEachFeature: function (feature, layer) {
-                // STEP 2 + STEP 3: إظهار اسم المنطقة + MAIL_CODE
-                layer.on('click', function (e) {
-                    alert(
-                        "Zone: " + (feature.properties.NAME_ENGLI || feature.properties.NAME) +
-                        "\nMAIL_CODE: " + (feature.properties.MAIL_CODE || "")
-                    );
-                });
-            }
-        }).addTo(map);
-
-        // تقريب الخريطة على كل المناطق
-        map.fitBounds(zonesLayer.getBounds());
-
-        // نحدّث Layer Control
-        updateLayerControl();
-    });
-
-    // =====================
-    // STEP 4
-    // =====================
-
-    $.getJSON("wasteContainer.json", function (WC) {
-        wasteContainersLayer = L.geoJson(WC, {
-            pointToLayer: function (feature, latlng) {
-                return L.circleMarker(latlng, {
-                    radius: 5,
-                    fillColor: "orange",
-                    color: "orange",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                });
-            }
-        }).addTo(map);
-
-        // بعد ما تنعمل الطبقة، نحدّث Layer Control
-        updateLayerControl();
-    });
-
-    // =====================
-    // STEP 5 (موجود داخل updateLayerControl)
-    // - عمل Layer Control
-    // - إضافة الطبقتين على الخريطة
-    // =====================
-
-</script>
-
-</body>
-</html>
+    ).addT
