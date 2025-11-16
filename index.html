@@ -68,4 +68,144 @@
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }
-    ).addT
+    ).addTo(map);   // النهاري شغال افتراضياً
+
+    var osmNight = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap &copy; CartoDB'
+        }
+    );
+
+    // متغيرات الطبقات
+    var zonesLayer;
+    var wasteContainersLayer;
+
+    // Layer control (لبعد ما تنعمل الطبقات)
+    var baseLayers = {
+        "Day": osmDay,
+        "Night": osmNight
+    };
+    var overlays = {};
+    var layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+
+    // 3) Scale bar (مقياس رسم)
+    L.control.scale({
+        metric: true,
+        imperial: false
+    }).addTo(map);
+
+    // 4) إشارة الشمال (North arrow)
+    var northControl = L.control({position: 'topright'});
+    northControl.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'leaflet-control-northarrow');
+        div.innerHTML = 'N<br>&uarr;'; // سهم لأعلى
+        return div;
+    };
+    northControl.addTo(map);
+
+    // 5) ساعة حية (Clock)
+    var clockControl = L.control({position: 'bottomleft'});
+    clockControl.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'leaflet-control-clock');
+        function updateClock() {
+            var now = new Date();
+            div.innerHTML = now.toLocaleTimeString();
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+        return div;
+    };
+    clockControl.addTo(map);
+
+    // 6) إحداثيات مؤشر الفأرة (الميزة الإضافية الأولى)
+    var coordsControl = L.control({position: 'bottomright'});
+    coordsControl.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'leaflet-control-coords');
+        div.innerHTML = 'Move mouse on map';
+        map.on('mousemove', function(e) {
+            div.innerHTML = 'Lat: ' + e.latlng.lat.toFixed(4) +
+                            ' , Lng: ' + e.latlng.lng.toFixed(4);
+        });
+        return div;
+    };
+    coordsControl.addTo(map);
+
+    // 7) زر "Zoom to Ramallah" (الميزة الإضافية الثانية)
+    var zoomToLayerControl = L.control({position: 'topleft'});
+    zoomToLayerControl.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'leaflet-control-custom');
+        var button = L.DomUtil.create('button', '', div);
+        button.innerHTML = 'Zoom to Zones';
+        L.DomEvent.on(button, 'click', function(e) {
+            L.DomEvent.stopPropagation(e);
+            if (zonesLayer) {
+                map.fitBounds(zonesLayer.getBounds());
+            } else {
+                alert("Zones layer not loaded yet.");
+            }
+        });
+        return div;
+    };
+    zoomToLayerControl.addTo(map);
+
+    // =====================
+    // تحميل طبقة المناطق RamallahZones.json
+    // =====================
+
+    $.getJSON("RamallahZones.json", function (RZ) {
+        zonesLayer = L.geoJson(RZ, {
+            style: function (feature) {
+                return {
+                    fillColor: "yellow",
+                    fillOpacity: 0.3,
+                    color: "yellow",
+                    weight: 1.0,
+                    opacity: 0.7
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                // كليك على المنطقة: اسم + MAIL_CODE
+                layer.on('click', function (e) {
+                    alert(
+                        "Zone: " + (feature.properties.NAME_ENGLI || feature.properties.NAME) +
+                        "\nMAIL_CODE: " + (feature.properties.MAIL_CODE || "")
+                    );
+                });
+            }
+        }).addTo(map);
+
+        // تقريب على كل المناطق
+        map.fitBounds(zonesLayer.getBounds());
+
+        // إضافة الطبقة للـ overlays
+        layerControl.addOverlay(zonesLayer, "Zones");
+    });
+
+    // =====================
+    // تحميل طبقة الحاويات wasteContainer.json
+    // =====================
+
+    $.getJSON("wasteContainer.json", function (WC) {
+        wasteContainersLayer = L.geoJson(WC, {
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 5,
+                    fillColor: "orange",
+                    color: "orange",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+            }
+        }).addTo(map);
+
+        // إضافة الطبقة للـ overlays
+        layerControl.addOverlay(wasteContainersLayer, "Waste Containers");
+    });
+
+</script>
+
+</body>
+</html>
