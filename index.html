@@ -2,207 +2,119 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Lab 3 - Extra Map Features</title>
+    <title>Lab 3 - Extra Features</title>
 
-    <!-- Leaflet CSS -->
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        #map {
-            height: 600px;
-            width: 100%;
-        }
-        body {
-            margin: 0;
-        }
+        #map { height: 600px; width: 100%; }
+        body { margin: 0; }
 
-        /* شكل صندوقات الكنترول */
-        .leaflet-control-custom,
-        .leaflet-control-clock,
-        .leaflet-control-northarrow,
-        .leaflet-control-coords {
+        .leaflet-control {
             background: white;
-            padding: 4px 8px;
+            padding: 5px;
             border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
             font-size: 12px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.3);
         }
-
-        .leaflet-control-northarrow {
-            font-weight: bold;
-            text-align: center;
-        }
-
-        .leaflet-control-custom button {
-            background: #0078ff;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-
-        .leaflet-control-custom button:hover {
-            background: #005fcc;
-        }
+        .north-arrow { font-size: 16px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- jQuery for Ajax -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    // 1) إنشاء الخريطة
+
+    // Map
     var map = L.map('map').setView([31.9, 35.2], 12);
 
-    // 2) طبقتي الأساس: نهاري + ليلي (Night mode)
-    var osmDay = L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
-        }
-    ).addTo(map);   // النهاري شغال افتراضياً
+    // Base layers
+    var day = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var night = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
 
-    var osmNight = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap &copy; CartoDB'
-        }
-    );
-
-    // متغيرات الطبقات
-    var zonesLayer;
-    var wasteContainersLayer;
-
-    // Layer control (لبعد ما تنعمل الطبقات)
-    var baseLayers = {
-        "Day": osmDay,
-        "Night": osmNight
-    };
+    // Layer control
+    var baseLayers = { "Day": day, "Night": night };
     var overlays = {};
     var layerControl = L.control.layers(baseLayers, overlays).addTo(map);
 
-    // 3) Scale bar (مقياس رسم)
-    L.control.scale({
-        metric: true,
-        imperial: false
-    }).addTo(map);
+    // Scale bar
+    L.control.scale({ metric: true }).addTo(map);
 
-    // 4) إشارة الشمال (North arrow)
-    var northControl = L.control({position: 'topright'});
-    northControl.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'leaflet-control-northarrow');
-        div.innerHTML = 'N<br>&uarr;'; // سهم لأعلى
+    // North Arrow
+    var north = L.control({position: 'topright'});
+    north.onAdd = function() {
+        var div = L.DomUtil.create('div', 'leaflet-control north-arrow');
+        div.innerHTML = "N<br>&uarr;";
         return div;
     };
-    northControl.addTo(map);
+    north.addTo(map);
 
-    // 5) ساعة حية (Clock)
-    var clockControl = L.control({position: 'bottomleft'});
-    clockControl.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'leaflet-control-clock');
+    // Clock
+    var clock = L.control({position: 'bottomleft'});
+    clock.onAdd = function() {
+        var div = L.DomUtil.create('div', 'leaflet-control');
         function updateClock() {
-            var now = new Date();
-            div.innerHTML = now.toLocaleTimeString();
+            div.innerHTML = new Date().toLocaleTimeString();
         }
         updateClock();
         setInterval(updateClock, 1000);
         return div;
     };
-    clockControl.addTo(map);
+    clock.addTo(map);
 
-    // 6) إحداثيات مؤشر الفأرة (الميزة الإضافية الأولى)
-    var coordsControl = L.control({position: 'bottomright'});
-    coordsControl.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'leaflet-control-coords');
-        div.innerHTML = 'Move mouse on map';
+    // Coordinates
+    var coords = L.control({position: 'bottomright'});
+    coords.onAdd = function() {
+        var div = L.DomUtil.create('div', 'leaflet-control');
+        div.innerHTML = "Move mouse";
         map.on('mousemove', function(e) {
-            div.innerHTML = 'Lat: ' + e.latlng.lat.toFixed(4) +
-                            ' , Lng: ' + e.latlng.lng.toFixed(4);
+            div.innerHTML = "Lat: " + e.latlng.lat.toFixed(4) + ", Lng: " + e.latlng.lng.toFixed(4);
         });
         return div;
     };
-    coordsControl.addTo(map);
+    coords.addTo(map);
 
-    // 7) زر "Zoom to Ramallah" (الميزة الإضافية الثانية)
-    var zoomToLayerControl = L.control({position: 'topleft'});
-    zoomToLayerControl.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'leaflet-control-custom');
-        var button = L.DomUtil.create('button', '', div);
-        button.innerHTML = 'Zoom to Zones';
-        L.DomEvent.on(button, 'click', function(e) {
-            L.DomEvent.stopPropagation(e);
-            if (zonesLayer) {
-                map.fitBounds(zonesLayer.getBounds());
-            } else {
-                alert("Zones layer not loaded yet.");
-            }
-        });
+    // Zoom to Zones
+    var zoomZones = L.control({position: 'topleft'});
+    zoomZones.onAdd = function() {
+        var div = L.DomUtil.create('div', 'leaflet-control');
+        div.innerHTML = "<button>Zoom Zones</button>";
+        div.style.cursor = "pointer";
+        div.onclick = function() {
+            if (zonesLayer) map.fitBounds(zonesLayer.getBounds());
+        };
         return div;
     };
-    zoomToLayerControl.addTo(map);
+    zoomZones.addTo(map);
 
-    // =====================
-    // تحميل طبقة المناطق RamallahZones.json
-    // =====================
-
-    $.getJSON("RamallahZones.json", function (RZ) {
-        zonesLayer = L.geoJson(RZ, {
-            style: function (feature) {
-                return {
-                    fillColor: "yellow",
-                    fillOpacity: 0.3,
-                    color: "yellow",
-                    weight: 1.0,
-                    opacity: 0.7
-                };
-            },
-            onEachFeature: function (feature, layer) {
-                // كليك على المنطقة: اسم + MAIL_CODE
-                layer.on('click', function (e) {
-                    alert(
-                        "Zone: " + (feature.properties.NAME_ENGLI || feature.properties.NAME) +
-                        "\nMAIL_CODE: " + (feature.properties.MAIL_CODE || "")
-                    );
-                });
-            }
+    // Load Zones
+    var zonesLayer;
+    $.getJSON("RamallahZones.json", function(data) {
+        zonesLayer = L.geoJSON(data, {
+            style: {color:"yellow", fillColor:"yellow", fillOpacity:0.3}
         }).addTo(map);
 
-        // تقريب على كل المناطق
         map.fitBounds(zonesLayer.getBounds());
-
-        // إضافة الطبقة للـ overlays
         layerControl.addOverlay(zonesLayer, "Zones");
     });
 
-    // =====================
-    // تحميل طبقة الحاويات wasteContainer.json
-    // =====================
-
-    $.getJSON("wasteContainer.json", function (WC) {
-        wasteContainersLayer = L.geoJson(WC, {
-            pointToLayer: function (feature, latlng) {
+    // Load Waste
+    var wasteLayer;
+    $.getJSON("wasteContainer.json", function(data) {
+        wasteLayer = L.geoJSON(data, {
+            pointToLayer: function(feature, latlng) {
                 return L.circleMarker(latlng, {
-                    radius: 5,
-                    fillColor: "orange",
-                    color: "orange",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
+                    radius:5, fillColor:"orange", color:"orange", fillOpacity:0.9
                 });
             }
         }).addTo(map);
 
-        // إضافة الطبقة للـ overlays
-        layerControl.addOverlay(wasteContainersLayer, "Waste Containers");
+        layerControl.addOverlay(wasteLayer, "Waste Containers");
     });
 
 </script>
